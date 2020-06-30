@@ -1,0 +1,137 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <meta name="description" content="This is a treemap for visualizing data" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Treemap Project</title>
+    <!--CSS page-->
+    <link rel="stylesheet" type="text/css" href="./css/Style.css">
+    <!--D3 library-->
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <!--jQuery Library-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+    <script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js"></script>
+    <div id="title">Kickstarted</div>
+    <div id="description">Top 100 kickstarter campaigns</div>
+    <svg id='tree-map' width="960" height="570"></svg>
+    <script>
+        // Fetch Data
+        // Need URLS: Kickstarter Pledges, Movie Sales, and Video Game Sales
+        url = 'https://cdn.rawgit.com/freeCodeCamp/testable-projects-fcc/a80ce8f9/src/data/tree_map/kickstarter-funding-data.json';
+        // Fetch Data
+        req = new XMLHttpRequest();
+        req.open("GET", url, true);
+        req.send();
+        req.onload = () => {
+            dataset = JSON.parse(req.responseText);
+            // Create svg
+            const width = 960;
+            const height = 570;
+            const svg = d3.select("#tree-map");
+
+
+            // Create a tooltip
+            var tooltip = d3.select("body")
+                .append("div")
+                .attr("class", "tooltip")
+                .attr("id", "tooltip")
+                .style("opacity", 0);
+
+            //d3.treemap computes the position of each element of the hierarchy
+            const color = d3.scaleOrdinal(d3.schemeCategory10);
+            const treemap = d3.treemap()
+                .size([width, height])
+                .paddingInner(1);
+            var root = d3.hierarchy(dataset)
+                .sum(d => d.value); // Define root
+
+            treemap(root);
+
+            //Display data
+            const cell = svg.selectAll('g')
+                .data(root.leaves())
+                .enter()
+                .append("g")
+                .attr("class", "group")
+                .attr("transform", d => "translate(" + d.x0 + ", " + d.y0 + ")");
+
+
+            cell.append("rect")
+                .attr("width", d => d.x1 - d.x0)
+                .attr("height", d => d.y1 - d.y0)
+                .attr("class", "tile")
+                .attr("id", (d, i) => i)
+                .attr("data-name", d => d.data.name)
+                .attr("data-category", d => d.data.category)
+                .attr("data-value", d => d.data.value)
+                .attr("fill", d => color(d.data.category))
+                .on("mouseover", d => {
+                    tooltip.style("opacity", 0.9)
+                    tooltip.html(
+                        'Name: ' + d.data.name +
+                        '<br>Category: ' + d.data.category +
+                        '<br>Value: ' + d.data.value
+                    )
+                        .attr("data-value", d.data.value)
+                        .style("left", (d3.event.pageX + 10) + "px")
+                        .style("top", (d3.event.pageY - 28) + "px");
+                })
+                .on("mouseout", () => {
+                    tooltip.style("opacity", 0);
+                });
+
+
+            cell.append("text")
+                .attr('class', 'tile-text')
+                .selectAll("tspan")
+                .data(d => d.data.name.split(/(?=[A-Z][^A-Z])/g))
+                .enter()
+                .append("tspan")
+                .attr("x", 4)
+                .attr("y", (d, i) => 15 + i * 15)
+                .text(d => d);
+
+            var categories = root.leaves().map((nodes) => nodes.data.category)
+                .filter((category, index, self) => self.indexOf(category) === index);
+            console.log(categories);
+
+
+            //Create a legend;
+            const blockSize = 20; 
+            const legendW = 200; 
+            const legendH = (blockSize + 2) * categories.length;
+            let legend = d3.select("body")
+                .append("svg")
+                .attr('id', 'legend')
+                .attr('class', 'legend')
+                .attr('width', legendW)
+                .attr("height", legendH)
+
+            legend.selectAll("rect")
+                .data(categories)
+                .enter()
+                .append("rect")
+                .attr("class", "legend-item")
+                .attr("fill", d => color(d))
+                .attr("x", blockSize)
+                .attr("y", (d, i) => i * (blockSize + 1) + 10)
+                .attr("width", blockSize)
+                .attr("height", blockSize);
+
+            legend.append("g")
+                .selectAll("text")
+                .data(categories)
+                .enter()
+                .append("text")
+                .attr("x", blockSize * 2)
+                .attr("y", (d, i) => i * (blockSize + 1) + 25)
+                .text(d => d);
+                
+        }
+    </script>
+</body>
+</html>
